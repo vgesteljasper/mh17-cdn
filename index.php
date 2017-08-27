@@ -20,40 +20,40 @@ send(200, $rese, $fp, $fe);
 
 function send($c, $et, $fp, $fe) {
 
-	$mime = null; $duration = 120;
-	if ($fe) {
-		$fs = [
-			'js' => ['application/javascript', 120],
-			'map' => ['application/octet-stream', 120],
-			'css' => ['text/css', 120],
-			'jpg' => ['image/jpeg', 3600],
-			'jpeg' => ['image/jpeg', 3600],
-			'png' => ['image/png', 3600],
-			'svg' => ['image/svg+xml', 3600],
-			'gif' => ['image/gif', 3600],
-			'tif' => ['image/tiff', 3600],
-			'tiff' => ['image/tiff', 3600],
-			'woff' => ['application/octet-stream', 2592000],
-			'woff2' => ['application/octet-stream', 2592000],
-			'fft' => ['application/octet-stream', 2592000],
-			'eot' => ['application/octet-stream', 2592000]
-		];
-		if (array_key_exists($fe, $fs)) {
-			$mime = $fs[$fe][0];
-			$duration = $fs[$fe][1];
-		}
-	}
-	if ($et) header("Etag: {$et}");
-	if ($c === 200 && $mime) header("Content-Type: {$mime}");
-	http_response_code($c);
-	header_remove('X-Powered-By');
-	if ($fp) {
-		$s = filesize($fp);
-		header("Content-Length: {$s}");
-		header("Cache-Control: public, max-age={$duration}");
-		readfile($fp);
-	} else {
-		header('Content-Length: 0');
-	}
-	exit;
+  $mime = null; $duration = 120;
+  if ($fe) {
+    $fs = [
+      'js' => ['application/javascript', 120],
+      'map' => ['application/octet-stream', 120],
+      'css' => ['text/css', 120],
+      'jpg' => ['image/jpeg', 3600],
+      'jpeg' => ['image/jpeg', 3600],
+      'png' => ['image/png', 3600],
+      'svg' => ['image/svg+xml', 3600],
+      'gif' => ['image/gif', 3600],
+      'tif' => ['image/tiff', 3600],
+      'tiff' => ['image/tiff', 3600],
+      'woff' => ['application/octet-stream', 2592000],
+      'woff2' => ['application/octet-stream', 2592000],
+      'fft' => ['application/octet-stream', 2592000],
+      'eot' => ['application/octet-stream', 2592000]
+    ];
+    if (array_key_exists($fe, $fs)) {
+      $mime = $fs[$fe][0];
+      $duration = $fs[$fe][1];
+    }
+  }
+  if ($et) header("Etag: {$et}");
+  if ($c === 200 && $mime) header("Content-Type: {$mime}");
+  http_response_code($c);
+  header_remove('X-Powered-By');
+  if ($fp) {
+    $s = filesize($fp);
+    header("Content-Length: {$s}");
+    header("Cache-Control: public, max-age={$duration}");
+    readfile($fp);
+  } else {
+    header('Content-Length: 0');
+  }
+  exit;
 }
