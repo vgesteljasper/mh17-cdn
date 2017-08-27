@@ -1,43 +1,59 @@
 <?php
 
-namespace MH17CDN;
+$p = ltrim(rtrim($_SERVER['REQUEST_URI'], '/'), '/');
+$ps = explode('/', $p);
 
-define('DS', DIRECTORY_SEPARATOR);
-define('WWW_ROOT', __DIR__ . DS);
+if (count($ps) < 2) send(404, null, null, null);
 
-require WWW_ROOT . 'library' . DS .'ERR.php';
-require WWW_ROOT . 'library' . DS .'RES.php';
+$dir = $ps[0]; $fn = $ps[1];
 
-$RES = new RES();
-$ERR = new ERR($RES);
+$fp = __DIR__."/{$dir}/{$fn}";
+if (!file_exists($fp)) send(404, null, null, null);
 
-$url = 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
-$path = ltrim(rtrim(parse_url($url, PHP_URL_PATH), '/'), '/');
-$parts = explode('/', $path);
+$reqe = isset($_SERVER['HTTP_IF_NONE_MATCH']) ? trim($_SERVER['HTTP_IF_NONE_MATCH']) : null;
+$rese = '"'.md5_file($fp).'"';
 
-if (count($parts) < 2) $RES->send(404);
+$fe = isset(pathinfo($fn)['extension']) ? pathinfo($fn)['extension'] : null;
 
-$directory = $parts[0];
-$fileName = $parts[1];
+if ($reqe && $reqe === $rese) send(304, $rese, null, null);
+send(200, $rese, $fp, $fe);
 
-if (!in_array($directory, ['js', 'css', 'img'])) $RES->send(404);
+function send($c, $et, $fp, $fe) {
 
-$filePath = WWW_ROOT . 'content' . DS . $directory . DS . $fileName;
-
-if (!file_exists($filePath)) $RES->send(404);
-
-$requestEtag = isset($_SERVER['HTTP_IF_NONE_MATCH'])
-	? trim($_SERVER['HTTP_IF_NONE_MATCH'])
-	: null;
-
-$responseEtag = md5_file($filePath);
-
-$RES->fileExtension = array_key_exists('extension', pathinfo($fileName))
-	? pathinfo($fileName)['extension']
-	: null;
-
-if ($requestEtag && $requestEtag === $responseEtag) {
-	$RES->send(304, $responseEtag);
-} else {
-	$RES->send(200, $responseEtag, $filePath);
+	$mime = null; $duration = 120;
+	if ($fe) {
+		$fs = [
+			'js' => ['application/javascript', 120],
+			'map' => ['application/octet-stream', 120],
+			'css' => ['text/css', 120],
+			'jpg' => ['image/jpeg', 3600],
+			'jpeg' => ['image/jpeg', 3600],
+			'png' => ['image/png', 3600],
+			'svg' => ['image/svg+xml', 3600],
+			'gif' => ['image/gif', 3600],
+			'tif' => ['image/tiff', 3600],
+			'tiff' => ['image/tiff', 3600],
+			'woff' => ['application/octet-stream', 2592000],
+			'woff2' => ['application/octet-stream', 2592000],
+			'fft' => ['application/octet-stream', 2592000],
+			'eot' => ['application/octet-stream', 2592000]
+		];
+		if (array_key_exists($fe, $fs)) {
+			$mime = $fs[$fe][0];
+			$duration = $fs[$fe][1];
+		}
+	}
+	if ($et) header("Etag: {$et}");
+	if ($c === 200 && $mime) header("Content-Type: {$mime}");
+	http_response_code($c);
+	header_remove('X-Powered-By');
+	if ($fp) {
+		$s = filesize($fp);
+		header("Content-Length: {$s}");
+		header("Cache-Control: public, max-age={$duration}");
+		readfile($fp);
+	} else {
+		header('Content-Length: 0');
+	}
+	exit;
 }
